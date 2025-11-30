@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Cementerio Fantasma VR • Sobrevive lo que puedas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- Importmap Three.js -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.1/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.1/examples/jsm/"
+      }
+    }
+    </script>
+  </head>
+  <body>
+
+    <!-- Pantalla de inicio / Game Over -->
+    <div id="overlay">
+      <div class="overlay-content">
+        <h1>CEMENTERIO FANTASMA</h1>
+        <p>
+          Sobrevive todo lo que puedas en la oscuridad.<br>
+          Los fantasmas aparecerán a tus espaldas y te perseguirán.<br><br>
+          <strong>Mira al fantasma y aprieta el gatillo</strong> para lanzar luz sagrada y espantarlo.<br>
+          Si te atrapan… game over.
+        </p>
+        <button id="startBtn">ENTRAR AL CEMENTERIO</button>
+        <div id="result"></div>
+        <button id="restartBtn" style="display:none;">REINICIAR</button>
+      </div>
+    </div>
+
+    <!-- Contador de supervivencia -->
+    <div id="hud">
+      <div id="survivalCounter">Duraste: 0s</div>
+    </div>
+
+    <!-- Canvas WebGL -->
+    <canvas id="scene"></canvas>
+
+    <!-- Audio ambiente -->
+    <audio id="ambient" src="assets/audio/terror_ambient.mp3" preload="auto" loop></audio>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

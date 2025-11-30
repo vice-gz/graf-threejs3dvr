@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba Carga Modelos FBX</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #scene {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 400px;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        .log {
+            background: #333;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        .info { color: #2196F3; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="scene"></canvas>
+        
+        <div id="info">
+            <h2>🔍 Prueba de Carga FBX</h2>
+            <div class="log" id="log"></div>
+        </div>
+        
+        <div id="controls">
+            <h3>🎮 Controles</h3>
+            <button onclick="loadGhostFBX()">Cargar Fantasma FBX</button>
+            <button onclick="loadAngelFBX()">Cargar Ángel FBX</button>
+            <button onclick="loadSkullFBX()">Cargar Calavera FBX</button>
+            <button onclick="clearScene()">Limpiar Escena</button>
+            <button onclick="testAllModels()">Probar Todos</button>
+            <br>
+            <label>
+                <input type="checkbox" id="autoRotate" checked> Rotación Automática
+            </label>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Variables globales
+        let scene, camera, renderer, controls;
+        let currentModel = null;
+        const logs = [];
+
+        // Elementos DOM
+        const logElement = document.getElementById('log');
+        const autoRotateCheckbox = document.getElementById('autoRotate');
+
+        // Configuración inicial
+        init();
+
+        function init() {
+            // Escena
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+            scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
+
+            // Cámara
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: document.getElementById('scene'),
+                antialias: true 
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            // Controles de órbita
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // Luces
+            setupLights();
+
+            // Grid helper
+            const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
+            scene.add(gridHelper);
+
+            // Ejes helper
+            const axesHelper = new THREE.AxesHelper(5);
+            scene.add(axesHelper);
+
+            // Iniciar animación
+            animate();
+
+            log('Sistema de prueba inicializado', 'success');
+            log('Usa los botones para cargar modelos FBX', 'info');
+        }
+
+        function setupLights() {
+            // Luz ambiental
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+
+            // Luz direccional
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+
+            // Luz puntual
+            const pointLight = new THREE.PointLight(0x88aaff, 0.5, 100);
+            pointLight.position.set(0, 10, 0);
+            scene.add(pointLight);
+        }
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `<span class="${type}">[${timestamp}] ${message}</span>`;
+            logs.push(logEntry);
+            
+            // Mantener solo los últimos 20 logs
+            if (logs.length > 20) {
+                logs.shift();
+            }
+            
+            logElement.innerHTML = logs.join('<br>');
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Función para cargar modelos FBX con diagnóstico completo
+        async function loadFBXModel(modelPath, modelName) {
+            log(`🔍 Intentando cargar: ${modelName}`, 'info');
+            log(`📁 Ruta: ${modelPath}`, 'info');
+
+            try {
+                // Primero verificar si el archivo existe
+                const response = await fetch(modelPath, { method: 'HEAD' });
+                if (!response.ok) {
+                    throw new Error(`Archivo no encontrado: ${modelPath}`);
+                }
+
+                log(`✅ Archivo encontrado, iniciando carga...`, 'success');
+
+                return new Promise((resolve, reject) => {
+                    const loader = new FBXLoader();
+                    
+                    loader.load(
+                        modelPath,
+                        (fbx) => {
+                            log(`✅ ${modelName} cargado exitosamente!`, 'success');
+                            log(`📊 Estadísticas:`, 'info');
+                            log(`   - Número de hijos: ${fbx.children.length}`, 'info');
+                            
+                            let meshCount = 0;
+                            let vertexCount = 0;
+                            let materialCount = 0;
+                            
+                            fbx.traverse((child) => {
+                                if (child.isMesh) {
+                                    meshCount++;
+                                    vertexCount += child.geometry.attributes.position.count;
+                                    
+                                    if (child.material) {
+                                        if (Array.isArray(child.material)) {
+                                            materialCount += child.material.length;
+                                        } else {
+                                            materialCount++;
+                                        }
+                                    }
+                                    
+                                    // Configurar sombras
+                                    child.castShadow = true;
+                                    child.receiveShadow = true;
+                                    
+                                    log(`   - Malla: ${child.name || 'sin nombre'}`, 'info');
+                                    log(`     Vértices: ${child.geometry.attributes.position.count}`, 'info');
+                                    log(`     Material: ${child.material ? child.material.name || 'sin nombre' : 'ninguno'}`, 'info');
+                                }
+                            });
+                            
+                            log(`📈 Resumen: ${meshCount} mallas, ${vertexCount} vértices, ${materialCount} materiales`, 'success');
+                            
+                            // Centrar y escalar modelo
+                            const box = new THREE.Box3().setFromObject(fbx);
+                            const center = box.getCenter(new THREE.Vector3());
+                            const size = box.getSize(new THREE.Vector3());
+                            
+                            fbx.position.sub(center);
+                            fbx.position.y += size.y / 2; // Poner sobre el grid
+                            
+                            // Escala automática
+                            const maxSize = Math.max(size.x, size.y, size.z);
+                            const scale = 3 / maxSize;
+                            fbx.scale.setScalar(scale);
+                            
+                            log(`📏 Dimensiones: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`, 'info');
+                            log(`🎯 Escala aplicada: ${scale.toFixed(2)}`, 'info');
+                            
+                            resolve(fbx);
+                        },
+                        (progress) => {
+                            if (progress.lengthComputable) {
+                                const percent = (progress.loaded / progress.total) * 100;
+                                log(`📥 Cargando ${modelName}: ${percent.toFixed(1)}%`, 'info');
+                            }
+                        },
+                        (error) => {
+                            log(`❌ Error cargando ${modelName}: ${error.message}`, 'error');
+                            reject(error);
+                        }
+                    );
+                });
+                
+            } catch (error) {
+                log(`❌ Error preparando carga de ${modelName}: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // Función para cargar GLTF/GLB como alternativa
+        async function loadGLTFModel(modelPath, modelName) {
+            log(`🔍 Intentando cargar GLTF: ${modelName}`, 'info');
+            
+            return new Promise((resolve, reject) => {
+                const loader = new GLTFLoader();
+                
+                loader.load(
+                    modelPath,
+                    (gltf) => {
+                        log(`✅ ${modelName} (GLTF) cargado exitosamente!`, 'success');
+                        resolve(gltf.scene);
+                    },
+                    (progress) => {
+                        if (progress.lengthComputable) {
+                            const percent = (progress.loaded / progress.total) * 100;
+                            log(`📥 Cargando GLTF ${modelName}: ${percent.toFixed(1)}%`, 'info');
+                        }
+                    },
+                    (error) => {
+                        log(`❌ Error cargando GLTF ${modelName}: ${error.message}`, 'error');
+                        reject(error);
+                    }
+                );
+            });
+        }
+
+        // Función para agregar modelo a la escena
+        function addModelToScene(model, name) {
+            // Remover modelo anterior
+            if (currentModel) {
+                scene.remove(currentModel);
+            }
+            
+            scene.add(model);
+            currentModel = model;
+            
+            // Enfocar el nuevo modelo
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            let cameraDistance = maxDim / (2 * Math.tan(fov / 2));
+            cameraDistance *= 1.5; // Un poco más de distancia
+            
+            controls.target.copy(center);
+            camera.position.copy(center.clone().add(new THREE.Vector3(cameraDistance, cameraDistance, cameraDistance)));
+            controls.update();
+            
+            log(`🎉 ${name} agregado a la escena`, 'success');
+        }
+
+        // Funciones de carga específicas
+        async function loadGhostFBX() {
+            try {
+                const ghost = await loadFBXModel('assets/models/ghost.fbx', 'Fantasma');
+                addModelToScene(ghost, 'Fantasma FBX');
+            } catch (error) {
+                log(`🔄 Intentando cargar GLTF/GLB del fantasma...`, 'warning');
+                try {
+                    const ghost = await loadGLTFModel('assets/models/ghost.glb', 'Fantasma');
+                    addModelToScene(ghost, 'Fantasma GLB');
+                } catch (gltfError) {
+                    log(`💀 Creando placeholder para fantasma...`, 'warning');
+                    createGhostPlaceholder();
+                }
+            }
+        }
+
+        async function loadAngelFBX() {
+            try {
+                const angel = await loadFBXModel('assets/models/angel_statue.fbx', 'Ángel');
+                addModelToScene(angel, 'Ángel FBX');
+            } catch (error) {
+                log(`🔄 Intentando cargar GLTF/GLB del ángel...`, 'warning');
+                try {
+                    const angel = await loadGLTFModel('assets/models/angel_statue.glb', 'Ángel');
+                    addModelToScene(angel, 'Ángel GLB');
+                } catch (gltfError) {
+                    log(`👼 Creando placeholder para ángel...`, 'warning');
+                    createAngelPlaceholder();
+                }
+            }
+        }
+
+        async function loadSkullFBX() {
+            try {
+                const skull = await loadFBXModel('assets/models/skull.fbx', 'Calavera');
+                addModelToScene(skull, 'Calavera FBX');
+            } catch (error) {
+                log(`🔄 Intentando cargar GLTF/GLB de la calavera...`, 'warning');
+                try {
+                    const skull = await loadGLTFModel('assets/models/skull.glb', 'Calavera');
+                    addModelToScene(skull, 'Calavera GLB');
+                } catch (gltfError) {
+                    log(`💀 Creando placeholder para calavera...`, 'warning');
+                    createSkullPlaceholder();
+                }
+            }
+        }
+
+        // Placeholders
+        function createGhostPlaceholder() {
+            log(`👻 Creando placeholder de fantasma...`, 'warning');
+            
+            const group = new THREE.Group();
+            
+            // Cuerpo fantasma
+            const bodyGeometry = new THREE.SphereGeometry(1, 16, 16);
+            bodyGeometry.scale(1, 1.5, 1);
+            const bodyMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x88ddff, 
+                transparent: true, 
+                opacity: 0.8,
+                shininess: 100
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            group.add(body);
+            
+            // Ojos rojos
+            const eyeGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+            const eyeMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xff0000, 
+                emissive: 0xff0000 
+            });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.3, 0.3, 0.8);
+            group.add(leftEye);
+            
+            const rightEye = leftEye.clone();
+            rightEye.position.set(0.3, 0.3, 0.8);
+            group.add(rightEye);
+            
+            addModelToScene(group, 'Fantasma (Placeholder)');
+        }
+
+        function createAngelPlaceholder() {
+            log(`👼 Creando placeholder de ángel...`, 'warning');
+            
+            const group = new THREE.Group();
+            
+            // Base
+            const baseGeometry = new THREE.CylinderGeometry(1.5, 2, 0.5, 8);
+            const baseMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            group.add(base);
+            
+            // Cuerpo
+            const bodyGeometry = new THREE.ConeGeometry(0.8, 3, 8);
+            const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 1.8;
+            group.add(body);
+            
+            // Alas
+            const wingGeometry = new THREE.PlaneGeometry(2, 1.2);
+            const wingMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xffffff, 
+                side: THREE.DoubleSide 
+            });
+            
+            const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+            leftWing.position.set(-1.2, 2, 0);
+            leftWing.rotation.y = Math.PI / 2;
+            group.add(leftWing);
+            
+            const rightWing = leftWing.clone();
+            rightWing.position.set(1.2, 2, 0);
+            rightWing.rotation.y = -Math.PI / 2;
+            group.add(rightWing);
+            
+            addModelToScene(group, 'Ángel (Placeholder)');
+        }
+
+        function createSkullPlaceholder() {
+            log(`💀 Creando placeholder de calavera...`, 'warning');
+            
+            const group = new THREE.Group();
+            
+            // Cráneo
+            const skullGeometry = new THREE.SphereGeometry(0.8, 12, 10);
+            const skullMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+            const skull = new THREE.Mesh(skullGeometry, skullMaterial);
+            group.add(skull);
+            
+            // Mandíbula
+            const jawGeometry = new THREE.SphereGeometry(0.6, 8, 6);
+            jawGeometry.scale(1, 0.4, 0.8);
+            const jawMaterial = new THREE.MeshPhongMaterial({ color: 0xdddddd });
+            const jaw = new THREE.Mesh(jawGeometry, jawMaterial);
+            jaw.position.y = -0.3;
+            jaw.position.z = 0.1;
+            group.add(jaw);
+            
+            // Cuencas de los ojos
+            const eyeSocketGeometry = new THREE.SphereGeometry(0.2, 8, 6);
+            const eyeSocketMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+            
+            const leftSocket = new THREE.Mesh(eyeSocketGeometry, eyeSocketMaterial);
+            leftSocket.position.set(-0.3, 0.2, 0.6);
+            group.add(leftSocket);
+            
+            const rightSocket = leftSocket.clone();
+            rightSocket.position.set(0.3, 0.2, 0.6);
+            group.add(rightSocket);
+            
+            addModelToScene(group, 'Calavera (Placeholder)');
+        }
+
+        function clearScene() {
+            if (currentModel) {
+                scene.remove(currentModel);
+                currentModel = null;
+                log('🧹 Escena limpiada', 'success');
+            }
+        }
+
+        async function testAllModels() {
+            log('🧪 Iniciando prueba de todos los modelos...', 'info');
+            
+            await loadGhostFBX();
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            await loadAngelFBX();
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            await loadSkullFBX();
+            
+            log('✅ Prueba completada', 'success');
+        }
+
+        // Animación
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (currentModel && autoRotateCheckbox.checked) {
+                currentModel.rotation.y += 0.01;
+            }
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Event listeners
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Hacer funciones globales para los botones
+        window.loadGhostFBX = loadGhostFBX;
+        window.loadAngelFBX = loadAngelFBX;
+        window.loadSkullFBX = loadSkullFBX;
+        window.clearScene = clearScene;
+        window.testAllModels = testAllModels;
+
+        log('🚀 Sistema de prueba listo!', 'success');
+    </script>
+</body>
+</html>

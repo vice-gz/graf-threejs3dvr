@@ -1,0 +1,107 @@
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #03040a;
+  color: #e6e9f5;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial;
+  overflow: hidden;
+}
+
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Botón VR de three.js */
+.vr-button {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 9;
+}
+
+/* Temporizador grande y elegante */
+#hud {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+#timer {
+  font-size: 2.8rem;
+  font-weight: 900;
+  padding: 10px 32px;
+  border-radius: 16px;
+  background: rgba(10, 12, 25, 0.75);
+  border: 2px solid rgba(255, 60, 100, 0.4);
+  backdrop-filter: blur(10px);
+  color: #ff3366;
+  text-shadow: 0 0 20px #ff0000;
+  letter-spacing: 2px;
+}
+
+/* Pantalla de inicio / resultado */
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, #0a0e1a 0%, #000 80%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 2rem;
+  text-align: center;
+}
+
+#overlay.hidden { display: none; }
+
+.overlay-content h1 {
+  font-size: 4.5rem;
+  margin: 0 0 1rem;
+  background: linear-gradient(90deg, #ff3366, #ff6a00);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 30px rgba(255, 50, 100, 0.5);
+}
+
+.overlay-content p {
+  font-size: 1.5rem;
+  max-width: 720px;
+  margin: 1.5rem auto;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+.overlay-content button {
+  font-size: 1.8rem;
+  padding: 1rem 3rem;
+  background: linear-gradient(45deg, #900, #c00);
+  border: none;
+  border-radius: 14px;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 8px 30px rgba(200, 0, 0, 0.6);
+  transition: all 0.3s ease;
+}
+
+.overlay-content button:hover {
+  transform: translateY(-4px);
+  background: linear-gradient(45deg, #c00, #f00);
+  box-shadow: 0 12px 40px rgba(255, 0, 0, 0.7);
+}
+
+#result {
+  margin-top: 2rem;
+  font-size: 3rem;
+  font-weight: 900;
+  color: #ff3366;
+  text-shadow: 0 0 30px #ff0000;
+}
