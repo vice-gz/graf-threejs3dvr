@@ -1,0 +1,217 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+}
+
+#scene {
+  display: block;
+  width: 100%;
+  height: 100vh;
+  touch-action: none;
+}
+
+/* Pantalla de inicio */
+#startScreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #0a0a0a 0%, #1a0a0a 50%, #0a0a0a 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fog 3s ease-in-out infinite alternate;
+}
+
+@keyframes fog {
+  0% { background: linear-gradient(180deg, #0a0a0a 0%, #1a0a0a 50%, #0a0a0a 100%); }
+  100% { background: linear-gradient(180deg, #0f0505 0%, #1f0505 50%, #0f0505 100%); }
+}
+
+.title-container {
+  text-align: center;
+  max-width: 800px;
+  padding: 20px;
+}
+
+.game-title {
+  font-size: 4rem;
+  color: #ff3333;
+  text-shadow: 
+    0 0 10px #ff0000,
+    0 0 20px #ff0000,
+    0 0 30px #ff0000,
+    0 0 40px #990000;
+  letter-spacing: 8px;
+  margin-bottom: 50px;
+  animation: flicker 2s ease-in-out infinite;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+  75% { opacity: 0.9; }
+}
+
+.instructions {
+  font-size: 1.2rem;
+  line-height: 2;
+  color: #ccc;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+  margin-bottom: 40px;
+}
+
+.instructions p {
+  margin: 10px 0;
+}
+
+/* Botón VR */
+.vr-button {
+  position: fixed !important;
+  bottom: 40px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  padding: 18px 40px !important;
+  background: linear-gradient(135deg, #aa0000 0%, #ff3333 100%) !important;
+  border: 3px solid #ff6666 !important;
+  color: white !important;
+  font-size: 1.3rem !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 0 20px rgba(255, 0, 0, 0.8),
+    0 5px 15px rgba(0, 0, 0, 0.5) !important;
+  transition: all 0.3s ease !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+  z-index: 1001 !important;
+}
+
+.vr-button:hover {
+  background: linear-gradient(135deg, #cc0000 0%, #ff5555 100%) !important;
+  box-shadow: 
+    0 0 30px rgba(255, 0, 0, 1),
+    0 7px 20px rgba(0, 0, 0, 0.6) !important;
+  transform: translateX(-50%) translateY(-3px) !important;
+}
+
+/* HUD en juego */
+#gameHUD {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 15px 25px;
+  border: 2px solid #ff3333;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+}
+
+.hud-info p {
+  font-size: 1.1rem;
+  margin: 5px 0;
+  color: #fff;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.hud-info span {
+  color: #ff6666;
+  font-weight: bold;
+  font-size: 1.3rem;
+}
+
+/* Pantalla Game Over */
+#gameOverScreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 0, 0, 0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.gameover-container {
+  text-align: center;
+  padding: 40px;
+}
+
+.gameover-title {
+  font-size: 5rem;
+  color: #ff0000;
+  text-shadow: 
+    0 0 20px #ff0000,
+    0 0 40px #ff0000,
+    0 0 60px #990000;
+  letter-spacing: 10px;
+  margin-bottom: 40px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.gameover-stats {
+  font-size: 1.5rem;
+  color: #ccc;
+  margin: 15px 0;
+}
+
+.gameover-stats span {
+  color: #ff6666;
+  font-weight: bold;
+  font-size: 1.8rem;
+}
+
+.restart-hint {
+  margin-top: 40px;
+  font-size: 1.1rem;
+  color: #999;
+  animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .game-title {
+    font-size: 2.5rem;
+    letter-spacing: 4px;
+  }
+  
+  .instructions {
+    font-size: 1rem;
+  }
+  
+  .gameover-title {
+    font-size: 3rem;
+    letter-spacing: 5px;
+  }
+}
