@@ -23,6 +23,7 @@ const GHOST_SPAWN_DISTANCE = 30;
 const GHOST_DAMAGE_DISTANCE = 1.2;
 const GHOST_SCALE = 0.012; // Escala del modelo FBX
 
+
 // ORBES DE LUZ (PROYECTILES)
 const LIGHT_ORB_SPEED = 20;
 const LIGHT_ORB_SIZE = 0.4;
