@@ -4,10 +4,10 @@
 
 const CEMETERY_RADIUS = 50;
 const GAME_DURATION = 60;
-const GHOST_SPEED = 0.05;
+const GHOST_SPEED = 0.03; // velocidad reducida
 const MOVE_SPEED = 0.15;
 const DANGER_DISTANCE = 1.8;
-const GHOST_COUNT = 5;
+const GHOST_COUNT = 10; // más fantasmas
 
 // ========================================
 // VARIABLES GLOBALES
@@ -83,7 +83,6 @@ class Ghost {
         
         // Estado del fantasma
         this.scared = false;
-        this.scaredTime = 0;
         this.floatOffset = Math.random() * Math.PI * 2;
         
         // Posición inicial
@@ -103,15 +102,7 @@ class Ghost {
     }
     
     update(playerPos, deltaTime) {
-        if (this.scared) {
-            this.scaredTime--;
-            if (this.scaredTime <= 0) {
-                this.scared = false;
-                this.body.material.opacity = 0.7;
-                this.respawn();
-            }
-            return false;
-        }
+        if (this.scared) return false;
         
         // Moverse hacia el jugador
         const direction = new THREE.Vector3();
@@ -134,9 +125,9 @@ class Ghost {
     }
     
     scare() {
+        // Desaparecer fantasma al ser asustado
+        scene.remove(this.group);
         this.scared = true;
-        this.scaredTime = 180; // 3 segundos aproximadamente
-        this.body.material.opacity = 0.3;
     }
     
     remove() {
@@ -149,11 +140,9 @@ class Ghost {
 // ========================================
 
 function initScene() {
-    // Crear escena
     scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x111111, 0.03);
     
-    // Crear cámara
     camera = new THREE.PerspectiveCamera(
         75,
         window.innerWidth / window.innerHeight,
@@ -162,7 +151,6 @@ function initScene() {
     );
     camera.position.set(0, 1.6, 5);
     
-    // Crear renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
@@ -170,7 +158,6 @@ function initScene() {
     renderer.xr.enabled = true;
     gameContainer.appendChild(renderer.domElement);
     
-    // Verificar soporte VR
     checkVRSupport();
 }
 
@@ -209,11 +196,9 @@ function createVRButton() {
 // ========================================
 
 function createLighting() {
-    // Luz ambiental
     const ambientLight = new THREE.AmbientLight(0x1a1a2e, 0.3);
     scene.add(ambientLight);
     
-    // Luz de la luna
     const moonLight = new THREE.DirectionalLight(0x8899ff, 0.8);
     moonLight.position.set(20, 40, 20);
     moonLight.castShadow = true;
@@ -222,7 +207,6 @@ function createLighting() {
     moonLight.shadow.camera.far = 100;
     scene.add(moonLight);
     
-    // Luna visible
     const moonGeometry = new THREE.SphereGeometry(3, 32, 32);
     const moonMaterial = new THREE.MeshStandardMaterial({
         color: 0xffffee,
@@ -341,22 +325,18 @@ function createAngelStatues() {
         const statueGroup = new THREE.Group();
         const statueMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
         
-        // Cuerpo
         const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.4, 2, 8);
         const body = new THREE.Mesh(bodyGeometry, statueMaterial);
         
-        // Cabeza
         const headGeometry = new THREE.SphereGeometry(0.3, 8, 8);
         const head = new THREE.Mesh(headGeometry, statueMaterial);
         head.position.y = 1.3;
         
-        // Ala izquierda
         const wingGeometry = new THREE.ConeGeometry(0.8, 1.5, 8);
         const leftWing = new THREE.Mesh(wingGeometry, statueMaterial);
         leftWing.position.set(-0.7, 0.5, -0.3);
         leftWing.rotation.z = Math.PI / 4;
         
-        // Ala derecha
         const rightWing = new THREE.Mesh(wingGeometry, statueMaterial);
         rightWing.position.set(0.7, 0.5, -0.3);
         rightWing.rotation.z = -Math.PI / 4;
@@ -383,17 +363,14 @@ function createSkulls() {
         const skullGroup = new THREE.Group();
         const skullMaterial = new THREE.MeshStandardMaterial({ color: 0xeeeecc });
         
-        // Calavera principal
         const skullGeometry = new THREE.SphereGeometry(0.3, 8, 8);
         const skull = new THREE.Mesh(skullGeometry, skullMaterial);
         
-        // Ojo izquierdo
         const eyeGeometry = new THREE.SphereGeometry(0.08, 8, 8);
         const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
         const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
         leftEye.position.set(-0.12, 0.08, 0.25);
         
-        // Ojo derecho
         const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
         rightEye.position.set(0.12, 0.08, 0.25);
         
@@ -410,7 +387,6 @@ function createSkulls() {
 // ========================================
 
 function setupVRControllers() {
-    // Controlador izquierdo (movimiento)
     const leftController = renderer.xr.getController(0);
     scene.add(leftController);
     
@@ -418,7 +394,6 @@ function setupVRControllers() {
     leftGrip.add(createControllerModel());
     scene.add(leftGrip);
     
-    // Controlador derecho (acción)
     const rightController = renderer.xr.getController(1);
     rightController.addEventListener('selectstart', scareGhosts);
     scene.add(rightController);
@@ -525,17 +500,11 @@ function startGame() {
     gameActive = true;
     startTime = Date.now();
     
-    // Ocultar pantalla de inicio
     startScreen.classList.add('hidden');
-    
-    // Mostrar HUD e instrucciones
     gameHud.classList.remove('hidden');
     gameInstructions.classList.remove('hidden');
     
-    // Spawn fantasmas
     spawnGhosts();
-    
-    // Iniciar temporizador visual
     updateTimer();
 }
 
@@ -551,7 +520,6 @@ function updateTimer() {
     
     timerDisplay.textContent = Math.ceil(remaining) + 's';
     
-    // Advertencia cuando quedan 10 segundos
     if (remaining <= 10 && remaining > 0) {
         timerDisplay.parentElement.classList.add('warning');
     } else {
@@ -570,22 +538,19 @@ function updateTimer() {
 function endGame(won) {
     gameActive = false;
     
-    // Ocultar HUD e instrucciones
     gameHud.classList.add('hidden');
     gameInstructions.classList.add('hidden');
     
-    // Limpiar fantasmas
     ghosts.forEach(ghost => ghost.remove());
     ghosts = [];
     
-    // Mostrar resultado
     if (won) {
         resultTitle.textContent = '¡VICTORIA!';
         resultMessage.textContent = '¡Has sobrevivido! Escapaste del cementerio maldito.';
         resultTitle.style.color = '#00ff00';
     } else {
         resultTitle.textContent = 'GAME OVER';
-        resultMessage.textContent = 'Un fantasma te ha atrapado... El cementerio reclama otra alma.';
+        resultMessage.textContent = 'Un fantasma te ha atrapado...';
         resultTitle.style.color = '#ff0000';
     }
     
@@ -593,66 +558,31 @@ function endGame(won) {
 }
 
 // ========================================
-// REINICIAR JUEGO
-// ========================================
-
-function restartGame() {
-    gameOverScreen.classList.add('hidden');
-    startScreen.classList.remove('hidden');
-    timerDisplay.textContent = '60s';
-}
-
-// ========================================
 // LOOP DE ANIMACIÓN
 // ========================================
 
 function animate() {
-    renderer.setAnimationLoop(() => {
-        if (gameActive) {
-            // Actualizar movimiento
-            updatePlayerMovement();
-            
-            // Actualizar temporizador
-            updateTimer();
-            
-            // Actualizar fantasmas
-            let caught = false;
-            ghosts.forEach(ghost => {
-                if (ghost.update(camera.position)) {
-                    caught = true;
-                }
-            });
-            
-            if (caught) {
-                endGame(false);
-            }
-        }
+    animationId = renderer.setAnimationLoop(render);
+}
+
+function render() {
+    const deltaTime = 0.016;
+    
+    if (gameActive) {
+        updatePlayerMovement();
+        updateTimer();
         
-        renderer.render(scene, camera);
-    });
+        ghosts.forEach(ghost => {
+            const danger = ghost.update(camera.position, deltaTime);
+            if (danger) endGame(false);
+        });
+    }
+    
+    renderer.render(scene, camera);
 }
 
 // ========================================
-// REDIMENSIONAR VENTANA
-// ========================================
-
-function handleResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-// ========================================
-// EVENT LISTENERS
-// ========================================
-
-startButton.addEventListener('click', startGame);
-restartButton.addEventListener('click', restartGame);
-window.addEventListener('resize', handleResize);
-window.addEventListener('click', scareGhosts);
-
-// ========================================
-// INICIALIZACIÓN
+// INICIALIZACIÓN DE TODO
 // ========================================
 
 function init() {
@@ -664,10 +594,31 @@ function init() {
     createTombstones();
     createAngelStatues();
     createSkulls();
+    
     setupVRControllers();
     setupKeyboardControls();
+    
     animate();
 }
 
-// Iniciar el juego cuando se cargue la página
-window.addEventListener('load', init);
+// ========================================
+// EVENTOS DEL DOM
+// ========================================
+
+startButton.addEventListener('click', startGame);
+restartButton.addEventListener('click', () => {
+    gameOverScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+});
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ========================================
+// INICIAR
+// ========================================
+
+init();

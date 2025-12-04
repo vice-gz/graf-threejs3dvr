@@ -7,48 +7,48 @@ import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
 /** ========= CONFIGURACIÓN PRINCIPAL ========= */
 // MUNDO
-const WORLD_SIZE = 100;
+const WORLD_SIZE = 200;
 const WORLD_RADIUS = WORLD_SIZE * 0.5 - 2;
 const FOG_DENSITY = 0.035;
 
 // JUGADOR
 const PLAYER_RADIUS = 0.4;
 const PLAYER_HEIGHT = 1.6;
-const MOVE_SPEED = 3.5;
+const MOVE_SPEED = 3;
 
 // FANTASMAS
-const GHOST_COUNT = 5;
-const GHOST_SPEED = 2.2;
+const GHOST_COUNT = 7.2; // Más fantasmas
+const GHOST_SPEED = 1.5; // Más lentos
 const GHOST_SPAWN_DISTANCE = 30;
 const GHOST_DAMAGE_DISTANCE = 1.2;
-const GHOST_SCALE = 0.01; // Escala del modelo FBX
+const GHOST_SCALE = 0.012; // Escala del modelo FBX
 
 // ORBES DE LUZ (PROYECTILES)
 const LIGHT_ORB_SPEED = 20;
 const LIGHT_ORB_SIZE = 0.4;
 const LIGHT_ORB_LIFETIME = 4.0;
-const LIGHT_ORB_HIT_RADIUS = 2.5;
+const LIGHT_ORB_HIT_RADIUS = 3.2;
 const LIGHT_ORB_COLOR = 0xffffdd;
-const LIGHT_ORB_LIGHT_INTENSITY = 3;
+const LIGHT_ORB_LIGHT_INTENSITY = 200;
 const LIGHT_ORB_LIGHT_DISTANCE = 12;
 
 // OBJETOS DEL ESCENARIO
 const CROSS_COUNT = 30;
-const CROSS_SCALE_MIN = 1.5;
-const CROSS_SCALE_MAX = 2.5;
+const CROSS_SCALE_MIN = 1;
+const CROSS_SCALE_MAX = 1.5;
 const CROSS_COLLISION_RADIUS = 0.5;
 
 const SKULL_COUNT = 25;
-const SKULL_SCALE_MIN = 3.0;
-const SKULL_SCALE_MAX = 5.0;
-const SKULL_COLLISION_RADIUS = 0.4;
-const SKULL_HEIGHT_OFFSET = 1.5; // Altura sobre el suelo
+const SKULL_SCALE_MIN = 0.2;
+const SKULL_SCALE_MAX = 0.5;
+const SKULL_COLLISION_RADIUS = 0.6;
+const SKULL_HEIGHT_OFFSET = 1.2; // Altura sobre el suelo
 
 const ANGEL_COUNT = 20;
-const ANGEL_SCALE_MIN = 8.0; // MUCHO más grandes
-const ANGEL_SCALE_MAX = 12.0; // MUCHO más grandes
-const ANGEL_COLLISION_RADIUS = 2.0;
-const ANGEL_HEIGHT_OFFSET = 2.0; // Altura sobre el suelo
+const ANGEL_SCALE_MIN = 2; // MUCHO más grandes
+const ANGEL_SCALE_MAX = 3; // MUCHO más grandes
+const ANGEL_COLLISION_RADIUS = 3.0;
+const ANGEL_HEIGHT_OFFSET = 1.2; // Altura sobre el suelo
 
 /** ========= DOM ELEMENTS ========= */
 const startScreen = document.getElementById('startScreen');
@@ -360,9 +360,13 @@ fbxLoader.load('assets/models/ghost.fbx', (fbx) => {
     }
   });
   
+  console.log('Fantasmas cargados, generando', GHOST_COUNT);
+  
   for (let i = 0; i < GHOST_COUNT; i++) {
     const ghost = fbx.clone();
-    ghost.scale.setScalar(GHOST_SCALE);
+    ghost.scale.x = GHOST_SCALE;
+    ghost.scale.y = GHOST_SCALE;
+    ghost.scale.z = GHOST_SCALE;
     
     // Spawn detrás del jugador
     const angle = Math.random() * Math.PI * 2;
@@ -389,6 +393,8 @@ fbxLoader.load('assets/models/ghost.fbx', (fbx) => {
     
     scene.add(ghost);
     ghosts.push(ghost);
+    
+    console.log(`Fantasma ${i}: velocidad=${ghost.userData.speed.toFixed(2)}, pos=(${x.toFixed(1)}, 0, ${z.toFixed(1)})`);
   }
 }, undefined, (error) => {
   console.warn('Error cargando fantasmas:', error);
@@ -418,6 +424,85 @@ function updateGhosts(dt) {
     // Detectar colisión con jugador
     if (dist < GHOST_DAMAGE_DISTANCE) {
       triggerGameOver();
+    }
+  }
+}
+
+/** ========= SISTEMA DE PARTÍCULAS ========= */
+function createGhostParticles(position) {
+  const particleCount = 50;
+  const particles = [];
+  
+  for (let i = 0; i < particleCount; i++) {
+    const particleGeo = new THREE.SphereGeometry(0.05, 8, 8);
+    const particleMat = new THREE.MeshBasicMaterial({
+      color: 0xcccccc,
+      transparent: true,
+      opacity: 0.8
+    });
+    const particle = new THREE.Mesh(particleGeo, particleMat);
+    
+    particle.position.copy(position);
+    
+    // Velocidad aleatoria en todas direcciones
+    const speed = 2 + Math.random() * 3;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.random() * Math.PI;
+    
+    particle.userData = {
+      velocity: new THREE.Vector3(
+        Math.sin(phi) * Math.cos(theta) * speed,
+        Math.sin(phi) * Math.sin(theta) * speed,
+        Math.cos(phi) * speed
+      ),
+      lifetime: 1.0,
+      age: 0
+    };
+    
+    scene.add(particle);
+    particles.push(particle);
+  }
+  
+  return particles;
+}
+
+const particleSystems = [];
+
+function updateParticles(dt) {
+  for (let i = particleSystems.length - 1; i >= 0; i--) {
+    const particles = particleSystems[i];
+    let allDead = true;
+    
+    for (let j = particles.length - 1; j >= 0; j--) {
+      const particle = particles[j];
+      particle.userData.age += dt;
+      
+      if (particle.userData.age < particle.userData.lifetime) {
+        allDead = false;
+        
+        // Mover partícula
+        particle.position.add(
+          particle.userData.velocity.clone().multiplyScalar(dt)
+        );
+        
+        // Aplicar gravedad
+        particle.userData.velocity.y -= 5 * dt;
+        
+        // Fade out
+        const life = 1 - (particle.userData.age / particle.userData.lifetime);
+        particle.material.opacity = life * 0.8;
+        particle.scale.setScalar(life);
+      } else {
+        // Eliminar partícula
+        scene.remove(particle);
+        particle.geometry.dispose();
+        particle.material.dispose();
+        particles.splice(j, 1);
+      }
+    }
+    
+    if (allDead || particles.length === 0) {
+      particleSystems.splice(i, 1);
     }
   }
 }
@@ -488,9 +573,17 @@ function updateLightOrbs(dt) {
       const dist = orb.position.distanceTo(ghost.position);
       
       if (dist < LIGHT_ORB_HIT_RADIUS) {
-        // ¡COLISIÓN! Eliminar fantasma
+        // ¡COLISIÓN! Eliminar fantasma con efecto de partículas
         ghost.userData.active = false;
-        ghost.visible = false;
+        
+        // Crear partículas en la posición del fantasma
+        const particles = createGhostParticles(ghost.position.clone());
+        particleSystems.push(particles);
+        
+        // Ocultar fantasma después de un frame
+        setTimeout(() => {
+          ghost.visible = false;
+        }, 50);
         
         if (ghost.userData.sound) {
           ghost.userData.sound.stop();
@@ -498,6 +591,8 @@ function updateLightOrbs(dt) {
         
         killCount++;
         if (killCountEl) killCountEl.textContent = String(killCount);
+        
+        console.log(`¡Fantasma eliminado! Total: ${killCount}`);
         
         hitGhost = true;
         break;
@@ -527,19 +622,24 @@ function updateLightOrbs(dt) {
 function shootLightOrb(controller) {
   if (gameOver || !gameStarted) return;
   
-  // Posición del controlador
-  const position = new THREE.Vector3();
-  position.setFromMatrixPosition(controller.matrixWorld);
+  // Posición del controlador en el mundo
+  const worldPosition = new THREE.Vector3();
+  controller.getWorldPosition(worldPosition);
   
-  // Dirección hacia donde apunta el controlador
+  // Dirección del controlador en el mundo
+  const worldQuaternion = new THREE.Quaternion();
+  controller.getWorldQuaternion(worldQuaternion);
+  
   const direction = new THREE.Vector3(0, 0, -1);
-  direction.applyQuaternion(controller.quaternion);
+  direction.applyQuaternion(worldQuaternion);
   direction.normalize();
   
-  // Pequeño offset para que salga del controlador
-  position.add(direction.clone().multiplyScalar(0.3));
+  // Offset para que salga del controlador
+  worldPosition.add(direction.clone().multiplyScalar(0.2));
   
-  createLightOrb(position, direction);
+  createLightOrb(worldPosition, direction);
+  
+  console.log('Orbe disparado desde:', worldPosition, 'dirección:', direction);
 }
 
 /** ========= VR CONTROLLERS ========= */
@@ -712,6 +812,7 @@ renderer.setAnimationLoop(() => {
     vrGamepadMove(dt);
     updateGhosts(dt);
     updateLightOrbs(dt);
+    updateParticles(dt); // Actualizar partículas
   }
   
   // Actualizar tiempo
